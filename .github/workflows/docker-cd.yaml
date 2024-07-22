@@ -61,7 +61,8 @@ jobs:
         env:
           DOCKER_ORG: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
-          docker-compose -f docker-compose.yaml up -d
+          docker-compose -f docker-compose.yaml up --build -d
+          docker images
           docker tag  app/api:latest luoweb/firecrawl-api:latest
           docker push luoweb/firecrawl-api:latest
           docker tag  playwright-service:latest luoweb/firecrawl-playwright:latest
