@@ -23,6 +23,13 @@ jobs:
       matrix:
         python-version: [ "3.9" ]
     steps:
+
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
       # - uses: AutoModality/action-clean@v1
       - name: Clean docker image cache
         shell: bash
@@ -42,12 +49,6 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           sudo cp apps/api/.env.example apps/api/.env
           # sudo cp apps/api/.env.example apps/api/.env
-
-      - name: Check out code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          submodules: recursive
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
