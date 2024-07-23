@@ -86,7 +86,7 @@ jobs:
           docker push ${DOCKER_ORG}/firecrawl-api:latest
           docker tag  firecrawl_worker:latest ${DOCKER_ORG}/firecrawl-worker:latest
           docker push ${DOCKER_ORG}/firecrawl-worker:latest
-          docker tag  firecrawl_playwright-service:latest luoweb/firecrawl-playwright:latest
+          docker tag  firecrawl_playwright-service:latest ${DOCKER_ORG}/firecrawl-playwright:latest
           docker push ${DOCKER_ORG}/firecrawl-playwright:latest
 
       - name: Clean docker image cache
