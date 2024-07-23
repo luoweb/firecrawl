@@ -63,9 +63,11 @@ jobs:
         run: |
           docker-compose -f docker-compose.yaml up --build -d
           docker images
-          docker tag  app/api:latest luoweb/firecrawl-api:latest
+          docker tag  firecrawl_api:latest luoweb/firecrawl-api:latest
           docker push luoweb/firecrawl-api:latest
-          docker tag  playwright-service:latest luoweb/firecrawl-playwright:latest
+          docker tag  firecrawl_worker:latest luoweb/firecrawl-worker:latest
+          docker push luoweb/firecrawl-worker:latest
+          docker tag  firecrawl_playwright-service:latest luoweb/firecrawl-playwright:latest
           docker push luoweb/firecrawl-playwright:latest
 
       - name: Log in to Aliyun Docker Hub
@@ -80,9 +82,11 @@ jobs:
         env:
           DOCKER_ORG: registry.cn-hangzhou.aliyuncs.com/roweb
         run: |
-          docker tag  app/api:latest ${DOCKER_ORG}/firecrawl-api:latest
+          docker tag  firecrawl_api:latest ${DOCKER_ORG}/firecrawl-api:latest
           docker push ${DOCKER_ORG}/firecrawl-api:latest
-          docker tag  playwright-service:latest luoweb/firecrawl-playwright:latest
+          docker tag  firecrawl_worker:latest ${DOCKER_ORG}/firecrawl-worker:latest
+          docker push ${DOCKER_ORG}/firecrawl-worker:latest
+          docker tag  firecrawl_playwright-service:latest luoweb/firecrawl-playwright:latest
           docker push ${DOCKER_ORG}/firecrawl-playwright:latest
 
       - name: Clean docker image cache
