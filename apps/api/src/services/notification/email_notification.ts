@@ -2,6 +2,10 @@ import { supabase_service } from "../supabase";
 import { withAuth } from "../../lib/withAuth";
 import { Resend } from "resend";
 import { NotificationType } from "../../types";
+import { Logger } from "../../../src/lib/logger";
+import { sendSlackWebhook } from "../alerts/slack";
+import { getNotificationString } from "./notification_string";
+import { AuthCreditUsageChunk } from "../../controllers/v1/types";
 
 const emailTemplates: Record<
   NotificationType,
@@ -26,19 +30,21 @@ export async function sendNotification(
   team_id: string,
   notificationType: NotificationType,
   startDateString: string,
-  endDateString: string
+  endDateString: string,
+  chunk: AuthCreditUsageChunk
 ) {
   return withAuth(sendNotificationInternal)(
     team_id,
     notificationType,
     startDateString,
-    endDateString
+    endDateString,
+    chunk
   );
 }
 
 async function sendEmailNotification(
   email: string,
-  notificationType: NotificationType
+  notificationType: NotificationType,
 ) {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -52,11 +58,11 @@ async function sendEmailNotification(
     });
 
     if (error) {
-      console.error("Error sending email: ", error);
+      Logger.debug(`Error sending email: ${error}`);
       return { success: false };
     }
   } catch (error) {
-    console.error("Error sending email (2): ", error);
+    Logger.debug(`Error sending email (2): ${error}`);
     return { success: false };
   }
 }
@@ -65,12 +71,34 @@ export async function sendNotificationInternal(
   team_id: string,
   notificationType: NotificationType,
   startDateString: string,
-  endDateString: string
+  endDateString: string,
+  chunk: AuthCreditUsageChunk
 ): Promise<{ success: boolean }> {
   if (team_id === "preview") {
     return { success: true };
   }
+
+  const fifteenDaysAgo = new Date();
+  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+
   const { data, error } = await supabase_service
+    .from("user_notifications")
+    .select("*")
+    .eq("team_id", team_id)
+    .eq("notification_type", notificationType)
+    .gte("sent_date", fifteenDaysAgo.toISOString());
+
+  if (error) {
+    Logger.debug(`Error fetching notifications: ${error}`);
+    return { success: false };
+  }
+
+  if (data.length !== 0) {
+    // Logger.debug(`Notification already sent for team_id: ${team_id} and notificationType: ${notificationType} in the last 15 days`);
+    return { success: false };
+  }
+
+  const { data: recentData, error: recentError } = await supabase_service
     .from("user_notifications")
     .select("*")
     .eq("team_id", team_id)
@@ -78,14 +106,16 @@ export async function sendNotificationInternal(
     .gte("sent_date", startDateString)
     .lte("sent_date", endDateString);
 
-  if (error) {
-    console.error("Error fetching notifications: ", error);
+  if (recentError) {
+    Logger.debug(`Error fetching recent notifications: ${recentError}`);
     return { success: false };
   }
 
-  if (data.length !== 0) {
+  if (recentData.length !== 0) {
+    // Logger.debug(`Notification already sent for team_id: ${team_id} and notificationType: ${notificationType} within the specified date range`);
     return { success: false };
   } else {
+    console.log(`Sending notification for team_id: ${team_id} and notificationType: ${notificationType}`);
     // get the emails from the user with the team_id
     const { data: emails, error: emailsError } = await supabase_service
       .from("users")
@@ -93,7 +123,7 @@ export async function sendNotificationInternal(
       .eq("team_id", team_id);
 
     if (emailsError) {
-      console.error("Error fetching emails: ", emailsError);
+      Logger.debug(`Error fetching emails: ${emailsError}`);
       return { success: false };
     }
 
@@ -111,8 +141,18 @@ export async function sendNotificationInternal(
         },
       ]);
 
+    if (process.env.SLACK_ADMIN_WEBHOOK_URL && emails.length > 0) {
+      sendSlackWebhook(
+        `${getNotificationString(notificationType)}: Team ${team_id}, with email ${emails[0].email}. Number of credits used: ${chunk.adjusted_credits_used} | Number of credits in the plan: ${chunk.price_credits}`,
+        false,
+        process.env.SLACK_ADMIN_WEBHOOK_URL
+      ).catch((error) => {
+        Logger.debug(`Error sending slack notification: ${error}`);
+      });
+    }
+
     if (insertError) {
-      console.error("Error inserting notification record: ", insertError);
+      Logger.debug(`Error inserting notification record: ${insertError}`);
       return { success: false };
     }
 

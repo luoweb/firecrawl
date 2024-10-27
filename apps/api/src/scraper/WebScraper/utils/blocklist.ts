@@ -1,10 +1,11 @@
+import { Logger } from "../../../lib/logger";
+
 const socialMediaBlocklist = [
   'facebook.com',
   'x.com',
   'twitter.com',
   'instagram.com',
   'linkedin.com',
-  'pinterest.com',
   'snapchat.com',
   'tiktok.com',
   'reddit.com',
@@ -13,6 +14,11 @@ const socialMediaBlocklist = [
   'whatsapp.com',
   'wechat.com',
   'telegram.org',
+  'researchhub.com',
+  'youtube.com',
+  'corterix.com',
+  'southwest.com',
+  'ryanair.com'
 ];
 
 const allowedKeywords = [
@@ -31,7 +37,10 @@ const allowedKeywords = [
   'blog',
   'press',
   'conditions',
-  'tos'
+  'tos',
+  '://ads.tiktok.com',
+  '://tiktok.com/business',
+  '://developers.facebook.com'
 ];
 
 export function isUrlBlocked(url: string): boolean {
@@ -59,7 +68,7 @@ export function isUrlBlocked(url: string): boolean {
     return isBlocked;
   } catch (e) {
     // If an error occurs (e.g., invalid URL), return false
-    console.error(`Error parsing the following URL: ${url}`);
+    Logger.error(`Error parsing the following URL: ${url}`);
     return false;
   }
 }
