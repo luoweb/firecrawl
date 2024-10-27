@@ -1,4 +1,7 @@
+version: '3.9'
 name: firecrawl
+
+# name: firecrawl
 
 x-common-service: &common-service
   build: apps/api
